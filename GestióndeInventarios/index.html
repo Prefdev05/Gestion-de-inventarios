@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario de Tienda</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .product-form input {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .product-form button {
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        .product-form button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Inventario de Productos</h1>
+
+    <!-- Formulario para agregar productos -->
+    <div class="product-form">
+        <input type="text" id="nombreProducto" placeholder="Nombre del producto" />
+        <input type="number" id="cantidadProducto" placeholder="Cantidad" />
+        <button onclick="agregarProducto()">Agregar Producto</button>
+    </div>
+
+    <!-- Tabla para mostrar los productos -->
+    <table id="tablaInventario">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Aquí se agregarán los productos dinámicamente -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Arreglo para almacenar los productos
+    let inventario = [];
+
+    // Función para agregar productos al inventario
+    function agregarProducto() {
+        let nombre = document.getElementById('nombreProducto').value.trim();
+        let cantidad = parseInt(document.getElementById('cantidadProducto').value);
+
+        // Validar si el nombre o la cantidad es inválida
+        if (!nombre) {
+            alert('Por favor, ingresa un nombre de producto válido.');
+            return;
+        }
+        
+        if (isNaN(cantidad) || cantidad <= 0) {
+            alert('Por favor, ingresa una cantidad válida (mayor que 0).');
+            return;
+        }
+
+        // Verificar si el producto ya existe
+        let productoExistente = inventario.find(producto => producto.nombre.toLowerCase() === nombre.toLowerCase());
+
+        if (productoExistente) {
+            productoExistente.cantidad += cantidad;
+            alert(`El producto "${nombre}" ya existe. Cantidad actualizada.`);
+        } else {
+            inventario.push({ nombre: nombre, cantidad: cantidad });
+            alert(`Producto "${nombre}" agregado.`);
+        }
+
+        // Limpiar los campos
+        document.getElementById('nombreProducto').value = '';
+        document.getElementById('cantidadProducto').value = '';
+
+        // Mostrar los productos en la tabla
+        mostrarProductos();
+    }
+
+    // Función para mostrar los productos en la tabla
+    function mostrarProductos() {
+        let tbody = document.querySelector('#tablaInventario tbody');
+        tbody.innerHTML = ''; // Limpiar la tabla antes de mostrar los productos
+
+        // Verificar si el inventario está vacío
+        if (inventario.length === 0) {
+            let filaVacia = `<tr><td colspan="3">El inventario está vacío.</td></tr>`;
+            tbody.innerHTML = filaVacia;
+            return;
+        }
+
+        inventario.forEach((producto, index) => {
+            let fila = `
+                <tr>
+                    <td>${producto.nombre}</td>
+                    <td>${producto.cantidad}</td>
+                    <td>
+                        <button onclick="eliminarProducto(${index})" style="background-color: red; color: white;">Eliminar</button>
+                        <button onclick="actualizarCantidad(${index})" style="background-color: orange; color: white;">Actualizar</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += fila;
+        });
+    }
+
+    // Función para eliminar un producto del inventario
+    function eliminarProducto(index) {
+        inventario.splice(index, 1); // Elimina el producto por índice
+        alert('Producto eliminado del inventario.');
+        mostrarProductos(); // Actualizar la tabla
+    }
+
+    // Función para actualizar la cantidad de un producto
+    function actualizarCantidad(index) {
+        let nuevaCantidad = parseInt(prompt('Ingresa la nueva cantidad:'));
+
+        // Validar que la nueva cantidad sea válida
+        if (!isNaN(nuevaCantidad) && nuevaCantidad > 0) {
+            inventario[index].cantidad = nuevaCantidad;
+            alert('Cantidad actualizada.');
+        } else {
+            alert('Por favor, ingresa una cantidad válida.');
+        }
+
+        mostrarProductos(); // Actualizar la tabla
+    }
+</script>
+
+</body>
+</html>
