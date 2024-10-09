@@ -4,34 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario de Tienda</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 30px;
         }
-        h1 {
+        h1, h2 {
             color: #333;
         }
         .container {
             max-width: 600px;
             margin: 0 auto;
         }
-        .product-form input {
+        .form input {
             padding: 8px;
             margin: 5px 0;
             width: 100%;
             box-sizing: border-box;
         }
-        .product-form button {
+        .form button {
             padding: 10px;
-            background-color: #28a745;
+            background-color: #007bff;
             color: white;
             border: none;
             cursor: pointer;
             width: 100%;
+            transition: background-color 0.3s ease;
         }
-        .product-form button:hover {
-            background-color: #218838;
+        .form button:hover {
+            background-color: #0056b3;
+        }
+        .product-form button {
+            background-color: #28a745;
         }
         table {
             width: 100%;
@@ -48,6 +55,16 @@
         th {
             background-color: #f8f9fa;
         }
+        .btn-eliminar {
+            background-color: #dc3545;
+        }
+        .btn-actualizar {
+            background-color: #ffc107;
+        }
+        .toggle-table {
+            margin-top: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -55,15 +72,33 @@
 <div class="container">
     <h1>Inventario de Productos</h1>
 
-    <!-- Formulario para agregar productos -->
-    <div class="product-form">
-        <input type="text" id="nombreProducto" placeholder="Nombre del producto" />
-        <input type="number" id="cantidadProducto" placeholder="Cantidad" />
-        <button onclick="agregarProducto()">Agregar Producto</button>
+    <!-- Sistema de inicio de sesión y registro -->
+    <div id="auth" class="form">
+        <h2>Iniciar Sesión / Registrar</h2>
+        <input type="text" id="authUsuario" placeholder="Usuario" />
+        <input type="password" id="authPassword" placeholder="Contraseña" />
+        <button onclick="iniciarSesion()">Iniciar Sesión</button>
+        <o>
+        <button onclick="registrarUsuario()">Registrarse</button>
+    </div>
+
+    <!-- Formulario para agregar productos (solo visible si el usuario ha iniciado sesión) -->
+    <div id="productSection" style="display: none;">
+        <h2>Agregar producto</h2>
+        <div class="product-form">
+            <input type="text" id="nombreProducto" placeholder="Nombre del producto" />
+            <input type="number" id="cantidadProducto" placeholder="Cantidad" />
+            <button onclick="agregarProducto()">Agregar Producto</button>
+        </div>
+    </div>
+
+    <!-- Botón para mostrar/ocultar tabla -->
+    <div class="toggle-table">
+        <button onclick="toggleTabla()">Mostrar/Ocultar Inventario</button>
     </div>
 
     <!-- Tabla para mostrar los productos -->
-    <table id="tablaInventario">
+    <table id="tablaInventario" style="display: none;">
         <thead>
             <tr>
                 <th>Producto</th>
@@ -75,45 +110,134 @@
             <!-- Aquí se agregarán los productos dinámicamente -->
         </tbody>
     </table>
+
+    <button id="logoutBtn" onclick="cerrarSesion()" style="display: none;">Cerrar Sesión</button>
 </div>
 
 <script>
     // Arreglo para almacenar los productos
-    let inventario = [];
+    let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
+
+    // Función para mostrar/ocultar la tabla de productos
+    function toggleTabla() {
+        let tabla = document.getElementById('tablaInventario');
+        tabla.style.display = (tabla.style.display === 'none') ? 'table' : 'none';
+    }
+
+    // Función para registrar un nuevo usuario
+    function registrarUsuario() {
+        let usuario = document.getElementById('authUsuario').value.trim();
+        let password = document.getElementById('authPassword').value;
+
+        if (!usuario || !password) {
+            Swal.fire('Error', 'Por favor, completa todos los campos.', 'error');
+            return;
+        }
+
+        let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+
+        // Verificar si el usuario ya existe
+        let usuarioExistente = usuarios.find(user => user.usuario === usuario);
+        if (usuarioExistente) {
+            Swal.fire('Error', 'El usuario ya está registrado.', 'error');
+            return;
+        }
+
+        // Registrar nuevo usuario
+        usuarios.push({ usuario, password });
+        localStorage.setItem('usuarios', JSON.stringify(usuarios));
+
+        Swal.fire('Registrado', 'Usuario registrado exitosamente.', 'success');
+        limpiarCamposAuth();
+    }
+
+    // Función para iniciar sesión
+    function iniciarSesion() {
+        let usuario = document.getElementById('authUsuario').value.trim();
+        let password = document.getElementById('authPassword').value;
+
+        if (!usuario || !password) {
+            Swal.fire('Error', 'Por favor, completa todos los campos.', 'error');
+            return;
+        }
+
+        let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+
+        // Verificar si las credenciales son correctas
+        let usuarioValido = usuarios.find(user => user.usuario === usuario && user.password === password);
+        if (usuarioValido) {
+            Swal.fire('Bienvenido', 'Has iniciado sesión correctamente.', 'success');
+            localStorage.setItem('sesionActiva', JSON.stringify({ usuario }));
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('productSection').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'block';
+            mostrarProductos();
+        } else {
+            Swal.fire('Error', 'Usuario o contraseña incorrectos.', 'error');
+        }
+    }
+
+    // Función para cerrar sesión
+    function cerrarSesion() {
+        localStorage.removeItem('sesionActiva');
+        Swal.fire('Sesión Cerrada', 'Has cerrado sesión correctamente.', 'info');
+        document.getElementById('auth').style.display = 'block';
+        document.getElementById('productSection').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
+    }
+
+    // Verificar si hay una sesión activa al cargar la página
+    window.onload = function() {
+        let sesionActiva = JSON.parse(localStorage.getItem('sesionActiva'));
+        if (sesionActiva) {
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('productSection').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'block';
+            mostrarProductos();
+        }
+    }
 
     // Función para agregar productos al inventario
     function agregarProducto() {
         let nombre = document.getElementById('nombreProducto').value.trim();
         let cantidad = parseInt(document.getElementById('cantidadProducto').value);
 
-        // Validar si el nombre o la cantidad es inválida
         if (!nombre) {
-            alert('Por favor, ingresa un nombre de producto válido.');
+            Swal.fire('Error', 'Por favor, ingresa un nombre de producto válido.', 'error');
             return;
         }
-        
+
         if (isNaN(cantidad) || cantidad <= 0) {
-            alert('Por favor, ingresa una cantidad válida (mayor que 0).');
+            Swal.fire('Error', 'Por favor, ingresa una cantidad válida (mayor que 0).', 'error');
             return;
         }
 
-        // Verificar si el producto ya existe
-        let productoExistente = inventario.find(producto => producto.nombre.toLowerCase() === nombre.toLowerCase());
+        // Alerta de confirmación para agregar el producto
+        Swal.fire({
+            title: `¿Seguro que deseas agregar "${nombre}" con cantidad ${cantidad}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, agregar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Verificar si el producto ya existe
+                let productoExistente = inventario.find(producto => producto.nombre.toLowerCase() === nombre.toLowerCase());
 
-        if (productoExistente) {
-            productoExistente.cantidad += cantidad;
-            alert(`El producto "${nombre}" ya existe. Cantidad actualizada.`);
-        } else {
-            inventario.push({ nombre: nombre, cantidad: cantidad });
-            alert(`Producto "${nombre}" agregado.`);
-        }
+                if (productoExistente) {
+                    productoExistente.cantidad += cantidad;
+                    Swal.fire('Actualizado', `La cantidad del producto "${nombre}" ha sido actualizada.`, 'success');
+                } else {
+                    inventario.push({ nombre: nombre, cantidad: cantidad });
+                    Swal.fire('Agregado', `El producto "${nombre}" ha sido agregado.`, 'success');
+                }
 
-        // Limpiar los campos
-        document.getElementById('nombreProducto').value = '';
-        document.getElementById('cantidadProducto').value = '';
-
-        // Mostrar los productos en la tabla
-        mostrarProductos();
+                // Guardar el inventario en Local Storage
+                localStorage.setItem('inventario', JSON.stringify(inventario));
+                mostrarProductos();
+                limpiarCamposProducto();
+            }
+        });
     }
 
     // Función para mostrar los productos en la tabla
@@ -121,50 +245,78 @@
         let tbody = document.querySelector('#tablaInventario tbody');
         tbody.innerHTML = ''; // Limpiar la tabla antes de mostrar los productos
 
-        // Verificar si el inventario está vacío
-        if (inventario.length === 0) {
-            let filaVacia = `<tr><td colspan="3">El inventario está vacío.</td></tr>`;
-            tbody.innerHTML = filaVacia;
-            return;
-        }
-
         inventario.forEach((producto, index) => {
-            let fila = `
-                <tr>
-                    <td>${producto.nombre}</td>
-                    <td>${producto.cantidad}</td>
-                    <td>
-                        <button onclick="eliminarProducto(${index})" style="background-color: red; color: white;">Eliminar</button>
-                        <button onclick="actualizarCantidad(${index})" style="background-color: orange; color: white;">Actualizar</button>
-                    </td>
-                </tr>
-            `;
+            let fila = `<tr>
+                            <td>${producto.nombre}</td>
+                            <td>${producto.cantidad}</td>
+                            <td>
+                                <button class="btn-actualizar" onclick="actualizarCantidad(${index})">Actualizar</button>
+                                <button class="btn-eliminar" onclick="eliminarProducto(${index})">Eliminar</button>
+                            </td>
+                        </tr>`;
             tbody.innerHTML += fila;
         });
     }
 
-    // Función para eliminar un producto del inventario
-    function eliminarProducto(index) {
-        inventario.splice(index, 1); // Elimina el producto por índice
-        alert('Producto eliminado del inventario.');
-        mostrarProductos(); // Actualizar la tabla
-    }
-
     // Función para actualizar la cantidad de un producto
     function actualizarCantidad(index) {
-        let nuevaCantidad = parseInt(prompt('Ingresa la nueva cantidad:'));
+        let producto = inventario[index];
+        Swal.fire({
+            title: `Ingresa la nueva cantidad para "${producto.nombre}":`,
+            input: 'number',
+            inputAttributes: {
+                min: 1
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Actualizar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            let nuevaCantidad = parseInt(result.value);
+            if (!isNaN(nuevaCantidad) && nuevaCantidad > 0) {
+                producto.cantidad = nuevaCantidad;
+                Swal.fire('Actualizado', `La cantidad de "${producto.nombre}" ha sido actualizada a ${nuevaCantidad}.`, 'success');
+                localStorage.setItem('inventario', JSON.stringify(inventario)); // Guardar cambios en Local Storage
+                mostrarProductos(); // Actualizar la tabla
+            } else {
+                Swal.fire('Error', 'Por favor, ingresa una cantidad válida.', 'error');
+            }
+        });
+    }
 
-        // Validar que la nueva cantidad sea válida
-        if (!isNaN(nuevaCantidad) && nuevaCantidad > 0) {
-            inventario[index].cantidad = nuevaCantidad;
-            alert('Cantidad actualizada.');
-        } else {
-            alert('Por favor, ingresa una cantidad válida.');
-        }
+    // Función para eliminar un producto
+    function eliminarProducto(index) {
+        let producto = inventario[index];
 
-        mostrarProductos(); // Actualizar la tabla
+        // Alerta de confirmación antes de eliminar
+        Swal.fire({
+            title: `¿Estás seguro de que deseas eliminar el producto "${producto.nombre}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                inventario.splice(index, 1); // Eliminar el producto del arreglo
+                Swal.fire('Eliminado', `El producto "${producto.nombre}" ha sido eliminado.`, 'success');
+                localStorage.setItem('inventario', JSON.stringify(inventario)); // Guardar cambios en Local Storage
+                mostrarProductos(); // Actualizar la tabla
+            }
+        });
+    }
+
+    // Limpiar los campos del formulario de productos
+    function limpiarCamposProducto() {
+        document.getElementById('nombreProducto').value = '';
+        document.getElementById('cantidadProducto').value = '';
+    }
+
+    // Limpiar los campos de autenticación (login y registro)
+    function limpiarCamposAuth() {
+        document.getElementById('authUsuario').value = '';
+        document.getElementById('authPassword').value = '';
     }
 </script>
 
 </body>
 </html>
+
